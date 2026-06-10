@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trò Chơi Chữ Cái O Ô Ơ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #f0fdf4; /* Màu xanh lá nhạt dễ thương */
+            background-image: radial-gradient(#dcfce7 20%, transparent 20%),
+                              radial-gradient(#dcfce7 20%, transparent 20%);
+            background-color: #f0fdf4;
+            background-position: 0 0, 25px 25px;
+            background-size: 50px 50px;
+            overflow-x: hidden;
+            touch-action: manipulation; /* Tối ưu hóa cho màn hình cảm ứng */
+        }
+
+        .bounce-in {
+            animation: bounceIn 0.8s cubic-bezier(0.215, 0.610, 0.355, 1.000) both;
+        }
+
+        @keyframes bounceIn {
+            0% { opacity: 0; transform: scale3d(.3, .3, .3); }
+            20% { transform: scale3d(1.1, 1.1, 1.1); }
+            40% { transform: scale3d(.9, .9, .9); }
+            60% { opacity: 1; transform: scale3d(1.03, 1.03, 1.03); }
+            80% { transform: scale3d(.97, .97, .97); }
+            100% { opacity: 1; transform: scale3d(1, 1, 1); }
+        }
+
+        .pulse-btn:hover {
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .card-letter {
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border: 4px solid #fff;
+        }
+
+        .card-letter:hover, .card-letter:focus {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            outline: none;
+        }
+
+        .active-letter {
+            border-color: #f59e0b;
+            background-color: #fef3c7;
+        }
+
+        /* SVG Image Styles */
+        .svg-illustration {
+            width: 100%;
+            height: auto;
+            max-height: 150px;
+        }
+
+        /* Confetti effect */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        /* Styles cho trò chơi tìm chữ */
+        .word-item {
+            cursor: pointer;
+            transition: transform 0.2s;
+            user-select: none; /* Tránh bôi đen chữ khi click nhanh */
+        }
+        .word-item:active {
+            transform: scale(0.95);
+        }
+        
+        .correct-letter {
+            color: #10b981; /* Xanh lá */
+            font-weight: 900;
+            text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff;
+            animation: correctPop 0.5s ease;
+        }
+
+        @keyframes correctPop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.5); }
+            100% { transform: scale(1); }
+        }
+
+        .wrong-letter {
+            color: #ef4444; /* Đỏ */
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        /* Ẩn hiện các màn hình */
+        .screen {
+            display: none;
+        }
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Style cho nút điều hướng */
+        .nav-btn {
+            background-color: #3b82f6;
+            color: white;
+            border-radius: 9999px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.5);
+            transition: all 0.2s;
+            border: 4px solid #fff;
+        }
+        .nav-btn:hover {
+            background-color: #2563eb;
+            transform: translateY(-2px);
+        }
+
+        /* Modal Styles */
+        #message-modal {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal-content {
+            animation: slideDown 0.3s ease-out forwards;
+        }
+        @keyframes slideDown {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="min-h-screen text-gray-800 flex flex-col">
+
+    <div id="message-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="modal-content bg-white rounded-3xl p-8 max-w-sm w-[90%] text-center border-8 border-yellow-400 shadow-2xl relative">
+            <h2 id="modal-title" class="text-3xl font-black text-blue-600 mb-4">Tuyệt vời!</h2>
+            <p id="modal-message" class="text-xl font-bold text-gray-700 mb-6">Bé đã làm rất tốt!</p>
+            <div id="modal-icon" class="text-6xl mb-6 text-green-500">
+                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+            </div>
+            <button onclick="closeModal()" class="w-full bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-black py-4 px-6 rounded-2xl text-xl shadow-lg transition transform hover:scale-105">
+                Chơi tiếp nào!
+            </button>
+        </div>
+    </div>
+
+    <!-- MÀN HÌNH 1: MENU CHÍNH -->
+    <div id="screen-home" class="screen active flex-1 items-center justify-center p-4">
+        <div class="text-center bounce-in w-full max-w-2xl bg-white/90 backdrop-blur-sm rounded-3xl p-8 shadow-xl border-4 border-white">
+            <h1 class="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 mb-2 drop-shadow-sm">
+                Bé Vui Học Chữ
+            </h1>
+            <p class="text-3xl font-extrabold text-blue-600 mb-8 tracking-widest">O - Ô - Ơ</p>
+            
+            <div class="flex justify-center mb-10">
+                <!-- SVG Minh họa trẻ em vui vẻ -->
+                <svg viewBox="0 0 200 150" class="w-64 h-48 drop-shadow-md">
+                    <circle cx="100" cy="75" r="70" fill="#fef08a" />
+                    <!-- Khuôn mặt bé trai -->
+                    <circle cx="60" cy="80" r="25" fill="#fcd34d" />
+                    <circle cx="50" cy="75" r="4" fill="#1f2937" />
+                    <circle cx="70" cy="75" r="4" fill="#1f2937" />
+                    <path d="M 50 90 Q 60 100 70 90" fill="transparent" stroke="#1f2937" stroke-width="3" stroke-linecap="round"/>
+                    <!-- Mũ bé trai -->
+                    <path d="M 35 65 Q 60 30 85 65 Z" fill="#3b82f6" />
+                    
+                    <!-- Khuôn mặt bé gái -->
+                    <circle cx="140" cy="80" r="25" fill="#fcd34d" />
+                    <circle cx="130" cy="75" r="4" fill="#1f2937" />
+                    <circle cx="150" cy="75" r="4" fill="#1f2937" />
+                    <path d="M 130 90 Q 140 100 150 90" fill="transparent" stroke="#1f2937" stroke-width="3" stroke-linecap="round"/>
+                    <!-- Tóc bé gái -->
+                    <path d="M 115 80 Q 140 30 165 80 Z" fill="#ec4899" />
+                    
+                    <!-- Chữ O Ô Ơ bay bổng -->
+                    <text x="80" y="40" font-family="Nunito" font-weight="900" font-size="24" fill="#ef4444" transform="rotate(-15 80 40)">O</text>
+                    <text x="100" y="55" font-family="Nunito" font-weight="900" font-size="28" fill="#3b82f6">Ô</text>
+                    <text x="120" y="35" font-family="Nunito" font-weight="900" font-size="24" fill="#10b981" transform="rotate(15 120 35)">Ơ</text>
+                </svg>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <button onclick="switchScreen('screen-learn')" class="pulse-btn bg-gradient-to-b from-blue-400 to-blue-600 text-white font-black text-2xl py-6 px-8 rounded-3xl shadow-lg border-4 border-blue-200 relative overflow-hidden group">
+                    <span class="relative z-10 flex items-center justify-center gap-3">
+                        <i class="fas fa-book-open text-3xl"></i>
+                        Học Chữ
+                    </span>
+                    <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                </button>
+                
+                <button onclick="switchScreen('screen-game')" class="pulse-btn bg-gradient-to-b from-green-400 to-green-600 text-white font-black text-2xl py-6 px-8 rounded-3xl shadow-lg border-4 border-green-200 relative overflow-hidden group">
+                    <span class="relative z-10 flex items-center justify-center gap-3">
+                        <i class="fas fa-gamepad text-3xl"></i>
+                        Trò Chơi
+                    </span>
+                    <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MÀN HÌNH 2: HỌC CHỮ -->
+    <div id="screen-learn" class="screen flex-1 flex-col p-4 w-full max-w-4xl mx-auto">
+        <div class="flex justify-between items-center mb-6">
+            <button onclick="switchScreen('screen-home')" class="nav-btn flex items-center gap-2 text-xl bg-pink-500 hover:bg-pink-600 border-pink-200">
+                <i class="fas fa-arrow-left"></i> Quay lại
+            </button>
+            <h2 class="text-3xl font-black text-blue-600 bg-white px-6 py-2 rounded-full shadow-md border-4 border-white">Bé Học Chữ</h2>
+            <div class="w-32"></div> <!-- Spacer -->
+        </div>
+
+        <div class="bg-white rounded-3xl p-6 shadow-xl border-4 border-white flex-1 flex flex-col">
+            <div class="text-center mb-8">
+                <p class="text-2xl font-bold text-gray-700">Bé hãy chọn một chữ cái để xem nhé!</p>
+            </div>
+
+            <!-- Các nút chọn chữ -->
+            <div class="flex justify-center gap-4 md:gap-10 mb-10">
+                <button onclick="selectLetter('o')" id="btn-learn-o" class="card-letter w-24 h-24 md:w-32 md:h-32 rounded-3xl bg-blue-100 flex items-center justify-center text-5xl md:text-7xl font-black text-blue-600 shadow-md">O</button>
+                <button onclick="selectLetter('ô')" id="btn-learn-ô" class="card-letter w-24 h-24 md:w-32 md:h-32 rounded-3xl bg-red-100 flex items-center justify-center text-5xl md:text-7xl font-black text-red-600 shadow-md">Ô</button>
+                <button onclick="selectLetter('ơ')" id="btn-learn-ơ" class="card-letter w-24 h-24 md:w-32 md:h-32 rounded-3xl bg-green-100 flex items-center justify-center text-5xl md:text-7xl font-black text-green-600 shadow-md">Ơ</button>
+            </div>
+
+            <!-- Khu vực hiển thị thông tin chữ -->
+            <div id="letter-display" class="hidden flex-1 flex-col items-center justify-center animate-[bounceIn_0.5s]">
+                <div class="flex flex-col md:flex-row items-center gap-10 md:gap-20">
+                    <!-- Hiển thị chữ to -->
+                    <div class="text-center">
+                        <div id="big-letter" class="text-9xl md:text-[12rem] font-black leading-none drop-shadow-xl text-blue-600">O</div>
+                        <button onclick="playLetterSound()" class="mt-4 bg-yellow-400 hover:bg-yellow-500 text-yellow-900 rounded-full p-4 shadow-lg border-4 border-white pulse-btn">
+                            <i class="fas fa-volume-up text-3xl"></i>
+                        </button>
+                    </div>
+
+                    <!-- Hiển thị hình ảnh và từ vựng minh họa -->
+                    <div class="bg-gray-50 rounded-3xl p-8 border-4 border-dashed border-gray-300 text-center max-w-sm w-full">
+                        <div id="illustration-container" class="h-48 flex justify-center items-center mb-4">
+                            <!-- Hình ảnh sẽ được tiêm vào đây bằng JS -->
+                        </div>
+                        <p id="word-example" class="text-4xl font-black text-gray-800 uppercase tracking-wide">CON ONG</p>
+                    </div>
+                </div>
+                <div class="mt-8 text-center bg-blue-50 px-6 py-4 rounded-2xl border-2 border-blue-200">
+                    <p id="letter-description" class="text-2xl font-bold text-blue-800">
+                        Chữ O tròn như quả trứng gà.
+                    </p>
+                </div>
+            </div>
+            
+            <div id="learn-prompt" class="flex-1 flex items-center justify-center">
+                <p class="text-2xl text-gray-400 font-bold border-4 border-dashed border-gray-200 rounded-3xl p-10">Bấm vào các chữ cái ở trên ↑</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MÀN HÌNH 3: TRÒ CHƠI TÌM CHỮ -->
+    <div id="screen-game" class="screen flex-1 flex-col p-4 w-full max-w-5xl mx-auto">
+        <div class="flex justify-between items-center mb-6">
+            <button onclick="switchScreen('screen-home')" class="nav-btn flex items-center gap-2 text-xl bg-pink-500 hover:bg-pink-600 border-pink-200">
+                <i class="fas fa-arrow-left"></i> Quay lại
+            </button>
+            <h2 class="text-3xl font-black text-green-600 bg-white px-6 py-2 rounded-full shadow-md border-4 border-white">Trò Chơi Tìm Chữ</h2>
+            <!-- Điểm số -->
+            <div class="bg-yellow-400 text-yellow-900 font-black text-2xl px-6 py-2 rounded-full shadow-md border-4 border-white flex items-center gap-2">
+                <i class="fas fa-star text-white drop-shadow"></i> <span id="score">0</span>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-3xl p-6 shadow-xl border-4 border-white flex-1 flex flex-col relative overflow-hidden">
+            <!-- Progress bar -->
+            <div class="w-full bg-gray-200 rounded-full h-4 mb-6">
+                <div id="progress-bar" class="bg-green-500 h-4 rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+
+            <div class="text-center mb-8">
+                <h3 id="game-instruction" class="text-3xl font-black text-blue-700 bg-blue-50 inline-block px-8 py-3 rounded-2xl border-2 border-blue-200">
+                    Bé hãy tìm chữ <span id="target-letter" class="text-5xl text-red-600">O</span> trong từ dưới đây nhé!
+                </h3>
+            </div>
+
+            <div class="flex-1 flex flex-col items-center justify-center">
+                <!-- Vùng hiển thị từ có chứa chữ cái cần tìm -->
+                <div id="game-image-container" class="h-48 mb-8">
+                    <!-- SVG Image -->
+                </div>
+
+                <div id="word-container" class="flex flex-wrap justify-center gap-2 md:gap-4 bg-gray-100 p-8 rounded-3xl border-4 border-gray-200 shadow-inner">
+                    <!-- Các chữ cái sẽ được tạo động ở đây -->
+                </div>
+            </div>
+
+            <!-- Nút qua màn/chơi lại (Ẩn mặc định) -->
+            <div id="game-controls" class="absolute bottom-6 left-0 right-0 flex justify-center hidden">
+                <button onclick="nextGameLevel()" class="pulse-btn bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-black text-2xl py-4 px-12 rounded-full shadow-lg border-4 border-white flex items-center gap-3">
+                    Tiếp tục <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- ÂM THANH (Sử dụng Web Audio API để không phụ thuộc file ngoài) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playTone(frequency, type, duration) {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.type = type;
+            oscillator.frequency.value = frequency;
+            
+            gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + duration);
+        }
+
+        function playCorrectSound() {
+            // Âm thanh vui tai khi chọn đúng (Ting ting)
+            playTone(600, 'sine', 0.1);
+            setTimeout(() => playTone(800, 'sine', 0.2), 100);
+            createConfetti();
+        }
+
+        function playWrongSound() {
+            // Âm thanh khi chọn sai (Bíp trầm)
+            playTone(300, 'square', 0.2);
+            setTimeout(() => playTone(250, 'square', 0.3), 150);
+        }
+
+        function playSuccessSound() {
+            // Âm thanh hoàn thành màn chơi (Tada)
+            playTone(400, 'sine', 0.2);
+            setTimeout(() => playTone(500, 'sine', 0.2), 200);
+            setTimeout(() => playTone(600, 'sine', 0.4), 400);
+            for(let i=0; i<30; i++) {
+                setTimeout(createConfetti, i*50);
+            }
+        }
+
+        // --- HIỆU ỨNG PHÁO HOA (Confetti) ---
+        function createConfetti() {
+            const confetti = document.createElement('div');
+            confetti.classList.add('confetti');
+            
+            // Randomize properties
+            const colors = ['#fce7f3', '#fef08a', '#bbf7d0', '#bfdbfe', '#fbcfe8', '#ef4444', '#3b82f6', '#10b981'];
+            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            confetti.style.left = Math.random() * 100 + 'vw';
+            confetti.style.top = '-10px';
+            
+            // Shape
+            if(Math.random() > 0.5) confetti.style.borderRadius = '50%';
+            
+            document.body.appendChild(confetti);
+            
+            // Animation
+            const animationDuration = Math.random() * 2 + 1; // 1-3 seconds
+            
+            confetti.animate([
+                { transform: `translate3d(0, 0, 0) rotate(0deg)`, opacity: 1 },
+                { transform: `translate3d(${Math.random()*100 - 50}px, 100vh, 0) rotate(${Math.random()*360}deg)`, opacity: 0 }
+            ], {
+                duration: animationDuration * 1000,
+                easing: 'cubic-bezier(.37,0,.63,1)',
+                fill: 'forwards'
+            });
+            
+            // Cleanup
+            setTimeout(() => {
+                confetti.remove();
+            }, animationDuration * 1000);
+        }
+
+        // --- QUẢN LÝ MODAL (Thay thế Alert) ---
+        function showModal(title, message, isSuccess = true) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').textContent = message;
+            
+            const iconDiv = document.getElementById('modal-icon');
+            if (isSuccess) {
+                document.getElementById('modal-title').className = 'text-3xl font-black text-green-600 mb-4';
+                iconDiv.innerHTML = '<i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>';
+                iconDiv.className = 'text-6xl mb-6 text-green-500 flex justify-center gap-2';
+                playSuccessSound();
+            } else {
+                document.getElementById('modal-title').className = 'text-3xl font-black text-blue-600 mb-4';
+                iconDiv.innerHTML = '<i class="fas fa-info-circle"></i>';
+                iconDiv.className = 'text-6xl mb-6 text-blue-500';
+            }
+
+            document.getElementById('message-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('message-modal').classList.add('hidden');
+        }
+
+        // --- CHUYỂN ĐỔI MÀN HÌNH ---
+        function switchScreen(screenId) {
+            // Ẩn tất cả
+            document.querySelectorAll('.screen').forEach(el => {
+                el.classList.remove('active');
+            });
+            // Hiện màn hình mong muốn
+            document.getElementById(screenId).classList.add('active');
+            
+            // Reset state nếu vào màn hình game
+            if(screenId === 'screen-game') {
+                initGame();
+            }
+        }
+
+        // --- DỮ LIỆU HỌC CHỮ & HÌNH ẢNH SVG ---
+        const letterData = {
+            'o': {
+                word: 'C O N  O N G',
+                desc: 'Chữ O tròn như quả trứng gà.',
+                color: 'text-blue-600',
+                svg: `
+                    <svg viewBox="0 0 100 100" class="svg-illustration">
+                        <!-- Con ong -->
+                        <ellipse cx="50" cy="50" rx="30" ry="20" fill="#fcd34d" />
+                        <!-- Sọc đen -->
+                        <path d="M 35 33 Q 35 50 35 67" stroke="#1f2937" stroke-width="6" stroke-linecap="round"/>
+                        <path d="M 50 30 Q 50 50 50 70" stroke="#1f2937" stroke-width="6" stroke-linecap="round"/>
+                        <path d="M 65 33 Q 65 50 65 67" stroke="#1f2937" stroke-width="6" stroke-linecap="round"/>
+                        <!-- Cánh -->
+                        <ellipse cx="40" cy="25" rx="15" ry="10" fill="#bae6fd" opacity="0.8" transform="rotate(-20 40 25)" />
+                        <ellipse cx="60" cy="25" rx="15" ry="10" fill="#bae6fd" opacity="0.8" transform="rotate(20 60 25)" />
+                        <!-- Mắt -->
+                        <circle cx="25" cy="45" r="3" fill="#1f2937" />
+                        <!-- Râu -->
+                        <path d="M 25 40 Q 15 30 10 35" fill="none" stroke="#1f2937" stroke-width="2" />
+                        <path d="M 25 40 Q 20 25 25 20" fill="none" stroke="#1f2937" stroke-width="2" />
+                    </svg>
+                `
+            },
+            'ô': {
+                word: 'C Á I  Ô',
+                desc: 'Chữ Ô thì đội nón (mũ).',
+                color: 'text-red-600',
+                svg: `
+                    <svg viewBox="0 0 100 100" class="svg-illustration">
+                        <!-- Cán ô -->
+                        <path d="M 50 40 L 50 85 Q 50 95 60 90" fill="none" stroke="#78350f" stroke-width="5" stroke-linecap="round"/>
+                        <!-- Vòm ô -->
+                        <path d="M 10 50 Q 50 10 90 50 Z" fill="#ef4444" />
+                        <!-- Nan ô -->
+                        <path d="M 30 50 Q 50 10 50 50" fill="none" stroke="#b91c1c" stroke-width="2"/>
+                        <path d="M 70 50 Q 50 10 50 50" fill="none" stroke="#b91c1c" stroke-width="2"/>
+                        <!-- Chóp ô -->
+                        <polygon points="45,15 55,15 50,5" fill="#fcd34d" />
+                    </svg>
+                `
+            },
+            'ơ': {
+                word: 'C Á I  N Ơ',
+                desc: 'Chữ Ơ thì thêm râu.',
+                color: 'text-green-600',
+                svg: `
+                    <svg viewBox="0 0 100 100" class="svg-illustration">
+                        <!-- Nơ bên trái -->
+                        <path d="M 50 50 Q 10 10 10 50 Q 10 90 50 50" fill="#ec4899" />
+                        <path d="M 50 50 Q 20 20 20 50 Q 20 80 50 50" fill="#fbcfe8" />
+                        <!-- Nơ bên phải -->
+                        <path d="M 50 50 Q 90 10 90 50 Q 90 90 50 50" fill="#ec4899" />
+                        <path d="M 50 50 Q 80 20 80 50 Q 80 80 50 50" fill="#fbcfe8" />
+                        <!-- Tâm nơ -->
+                        <circle cx="50" cy="50" r="10" fill="#be185d" />
+                        <!-- Ruy băng rủ xuống -->
+                        <path d="M 45 55 L 30 90 L 40 90 Z" fill="#ec4899" />
+                        <path d="M 55 55 L 70 90 L 60 90 Z" fill="#ec4899" />
+                    </svg>
+                `
+            }
+        };
+
+        function selectLetter(letter) {
+            // Reset active style
+            ['o', 'ô', 'ơ'].forEach(l => {
+                document.getElementById(`btn-learn-${l}`).classList.remove('active-letter');
+            });
+            
+            // Set active style
+            document.getElementById(`btn-learn-${letter}`).classList.add('active-letter');
+
+            // Hide prompt, show display
+            document.getElementById('learn-prompt').classList.add('hidden');
+            const displayObj = document.getElementById('letter-display');
+            displayObj.classList.remove('hidden');
+            
+            // Re-trigger animation
+            displayObj.classList.remove('animate-[bounceIn_0.5s]');
+            void displayObj.offsetWidth; // trigger reflow
+            displayObj.classList.add('animate-[bounceIn_0.5s]');
+
+            // Update content
+            const data = letterData[letter];
+            const bigLetter = document.getElementById('big-letter');
+            
+            bigLetter.textContent = letter.toUpperCase();
+            // Xóa màu cũ
+            bigLetter.classList.remove('text-blue-600', 'text-red-600', 'text-green-600');
+            bigLetter.classList.add(data.color);
+
+            document.getElementById('word-example').textContent = data.word;
+            document.getElementById('letter-description').textContent = data.desc;
+            document.getElementById('illustration-container').innerHTML = data.svg;
+            
+            // Lưu trữ chữ cái hiện tại để đọc
+            window.currentLetterToPlay = letter;
+        }
+
+        // Giả lập đọc chữ cái (do không có file âm thanh)
+        function playLetterSound() {
+            // Thay vì dùng alert, chúng ta sẽ mô phỏng bằng âm thanh đơn giản
+            // và tạo hiệu ứng nhấp nháy cho chữ.
+            const letter = window.currentLetterToPlay || 'o';
+            const bigLetter = document.getElementById('big-letter');
+            
+            // Hiệu ứng phóng to
+            bigLetter.style.transform = 'scale(1.2)';
+            setTimeout(() => {
+                bigLetter.style.transform = 'scale(1)';
+            }, 300);
+
+            // Âm thanh giả lập (chữ O: trầm, Ô: cao vừa, Ơ: cao nhất)
+            let freq = 400;
+            if(letter === 'ô') freq = 500;
+            if(letter === 'ơ') freq = 600;
+            
+            playTone(freq, 'sine', 0.5);
+        }
+
+        // --- DỮ LIỆU VÀ LOGIC TRÒ CHƠI ---
+        const gameLevels = [
+            {
+                target: 'o',
+                word: 'C_O_N_ _B_Ò',
+                svg: `
+                    <svg viewBox="0 0 100 100" class="h-full">
+                        <ellipse cx="50" cy="60" rx="35" ry="20" fill="#fcd34d"/>
+                        <!-- Đầu bò -->
+                        <ellipse cx="20" cy="40" rx="15" ry="20" fill="#f59e0b"/>
+                        <!-- Đốm đen -->
+                        <path d="M 40 50 Q 50 40 60 55 Z" fill="#1f2937"/>
+                        <path d="M 70 50 Q 80 60 75 70 Z" fill="#1f2937"/>
+                        <!-- Sừng -->
+                        <path d="M 10 30 Q 5 15 15 20" fill="none" stroke="#d97706" stroke-width="3"/>
+                        <path d="M 30 30 Q 35 15 25 20" fill="none" stroke="#d97706" stroke-width="3"/>
+                        <!-- Mũi -->
+                        <ellipse cx="15" cy="50" rx="8" ry="5" fill="#fca5a5"/>
+                        <!-- Chân -->
+                        <rect x="30" y="70" width="8" height="15" fill="#f59e0b"/>
+                        <rect x="45" y="75" width="8" height="10" fill="#d97706"/>
+                        <rect x="60" y="70" width="8" height="15" fill="#f59e0b"/>
+                        <rect x="75" y="65" width="8" height="15" fill="#d97706"/>
+                    </svg>
+                `
+            },
+            {
+                target: 'ô',
+                word: 'Ô_ _T_Ô',
+                svg: `
+                    <svg viewBox="0 0 100 100" class="h-full">
+                        <!-- Thân xe trên -->
+                        <path d="M 25 45 L 35 25 L 65 25 L 75 45 Z" fill="#60a5fa" />
+                        <!-- Thân xe dưới -->
+                        <rect x="15" y="45" width="70" height="25" rx="5" fill="#3b82f6" />
+                        <!-- Bánh xe -->
+                        <circle cx="30" cy="70" r="12" fill="#1f2937" />
+                        <circle cx="30" cy="70" r="6" fill="#cbd5e1" />
+                        <circle cx="70" cy="70" r="12" fill="#1f2937" />
+                        <circle cx="70" cy="70" r="6" fill="#cbd5e1" />
+                        <!-- Cửa sổ -->
+                        <polygon points="30,45 37,28 48,28 48,45" fill="#e0f2fe" />
+                        <polygon points="52,45 52,28 63,28 70,45" fill="#e0f2fe" />
+                    </svg>
+                `
+            },
+            {
+                target: 'ơ',
+                word: 'L_Á_ _C_Ờ',
+                svg: `
+                    <svg viewBox="0 0 100 100" class="h-full">
+                        <!-- Cột cờ -->
+                        <rect x="20" y="10" width="4" height="80" fill="#9ca3af" />
+                        <!-- Lá cờ (đỏ) -->
+                        <path d="M 24 15 L 85 15 L 85 55 L 24 55 Z" fill="#ef4444" />
+                        <!-- Ngôi sao vàng -->
+                        <polygon points="54.5,22 60,33 72,34 63,42 66,53 54.5,47 43,53 46,42 37,34 49,33" fill="#fef08a" />
+                    </svg>
+                `
+            },
+            {
+                target: 'o',
+                word: 'C_H_Ù_M_ _N_H_O',
+                svg: `
+                    <svg viewBox="0 0 100 100" class="h-full">
+                        <!-- Cuống -->
+                        <path d="M 50 10 Q 40 20 50 30" fill="none" stroke="#65a30d" stroke-width="4"/>
+                        <!-- Lá -->
+                        <path d="M 50 20 Q 70 10 80 30 Q 60 40 50 20 Z" fill="#84cc16"/>
+                        <!-- Các quả nho tím -->
+                        <circle cx="40" cy="35" r="12" fill="#9333ea"/>
+                        <circle cx="60" cy="35" r="12" fill="#9333ea"/>
+                        <circle cx="50" cy="45" r="12" fill="#a855f7"/>
+                        <circle cx="35" cy="55" r="12" fill="#a855f7"/>
+                        <circle cx="65" cy="55" r="12" fill="#9333ea"/>
+                        <circle cx="50" cy="65" r="12" fill="#7e22ce"/>
+                        <circle cx="50" cy="80" r="10" fill="#6b21a8"/>
+                    </svg>
+                `
+            },
+            {
+                target: 'ô',
+                word: 'C_Á_I_ _X_Ô',
+                svg: `
+                    <svg viewBox="0 0 100 100" class="h-full">
+                        <!-- Quai xô -->
+                        <path d="M 25 35 Q 50 5 75 35" fill="none" stroke="#9ca3af" stroke-width="4"/>
+                        <!-- Thân xô -->
+                        <polygon points="25,35 75,35 65,85 35,85" fill="#ef4444" stroke="#dc2626" stroke-width="2"/>
+                        <!-- Miệng xô -->
+                        <ellipse cx="50" cy="35" rx="25" ry="8" fill="#f87171" stroke="#dc2626" stroke-width="2"/>
+                        <!-- Đáy xô -->
+                        <ellipse cx="50" cy="85" rx="15" ry="4" fill="#dc2626"/>
+                    </svg>
+                `
+            }
+        ];
+
+        let currentLevel = 0;
+        let score = 0;
+        let lettersToFind = 0;
+        let lettersFound = 0;
+
+        function initGame() {
+            currentLevel = 0;
+            score = 0;
+            document.getElementById('score').textContent = score;
+            updateProgressBar();
+            loadLevel();
+        }
+
+        function loadLevel() {
+            // Ẩn nút tiếp tục
+            document.getElementById('game-controls').classList.add('hidden');
+            
+            const levelData = gameLevels[currentLevel];
+            
+            // Cập nhật hướng dẫn
+            const targetSpan = document.getElementById('target-letter');
+            targetSpan.textContent = levelData.target.toUpperCase();
+            
+            // Chọn màu dựa trên chữ
+            targetSpan.className = 'text-5xl font-black drop-shadow ';
+            if(levelData.target === 'o') targetSpan.classList.add('text-blue-600');
+            else if(levelData.target === 'ô') targetSpan.classList.add('text-red-600');
+            else targetSpan.classList.add('text-green-600');
+
+            // Cập nhật hình ảnh
+            document.getElementById('game-image-container').innerHTML = levelData.svg;
+
+            // Xử lý từ vựng thành các thẻ chữ cái
+            const wordContainer = document.getElementById('word-container');
+            wordContainer.innerHTML = '';
+            
+            // Chia chuỗi theo dấu '_'
+            const chars = levelData.word.split('_');
+            lettersToFind = 0;
+            lettersFound = 0;
+
+            chars.forEach(char => {
+                const charEl = document.createElement('div');
+                charEl.textContent = char;
+                
+                if (char === ' ') {
+                    // Khoảng trắng
+                    charEl.className = 'w-4 md:w-8'; 
+                } else {
+                    // Chữ cái
+                    charEl.className = 'word-item w-12 h-16 md:w-16 md:h-20 bg-white rounded-xl shadow-md border-2 border-gray-300 flex items-center justify-center text-3xl md:text-5xl font-black text-gray-800 uppercase';
+                    
+                    // Nếu chữ cái giống chữ mục tiêu (không phân biệt hoa thường)
+                    if (char.toLowerCase() === levelData.target.toLowerCase()) {
+                        lettersToFind++;
+                        // Thêm sự kiện click cho chữ đúng
+                        charEl.onclick = function() {
+                            if (!this.classList.contains('found')) {
+                                this.classList.add('found', 'correct-letter', 'bg-green-100', 'border-green-400');
+                                this.classList.remove('border-gray-300', 'text-gray-800');
+                                playCorrectSound();
+                                checkLevelComplete();
+                            }
+                        };
+                    } else {
+                        // Thêm sự kiện click cho chữ sai
+                        charEl.onclick = function() {
+                            if (!this.classList.contains('found')) {
+                                this.classList.add('wrong-letter', 'bg-red-50', 'border-red-300');
+                                setTimeout(() => {
+                                    this.classList.remove('wrong-letter', 'bg-red-50', 'border-red-300');
+                                }, 500);
+                                playWrongSound();
+                            }
+                        };
+                    }
+                }
+                wordContainer.appendChild(charEl);
+            });
+        }
+
+        function checkLevelComplete() {
+            lettersFound++;
+            score += 10;
+            document.getElementById('score').textContent = score;
+
+            // Phóng to điểm số
+            const scoreEl = document.getElementById('score').parentElement;
+            scoreEl.classList.add('scale-110');
+            setTimeout(() => scoreEl.classList.remove('scale-110'), 200);
+
+            if (lettersFound >= lettersToFind) {
+                // Hoàn thành level
+                setTimeout(() => {
+                    document.getElementById('game-controls').classList.remove('hidden');
+                    document.getElementById('game-controls').classList.add('animate-[slideDown_0.3s_ease-out]');
+                    
+                    if (currentLevel === gameLevels.length - 1) {
+                        // Hoàn thành tất cả
+                        setTimeout(() => {
+                            showModal("Chúc mừng bé!", `Bé đã tìm được tất cả các chữ và đạt ${score} điểm! Giỏi quá!`, true);
+                        }, 500);
+                    } else {
+                        playSuccessSound();
+                    }
+                }, 500);
+            }
+        }
+
+        function nextGameLevel() {
+            currentLevel++;
+            if (currentLevel < gameLevels.length) {
+                updateProgressBar();
+                loadLevel();
+            } else {
+                // Nếu người dùng bấm "Tiếp tục" ở modal kết thúc, quay về màn hình đầu
+                switchScreen('screen-home');
+            }
+        }
+
+        function updateProgressBar() {
+            const progress = (currentLevel / gameLevels.length) * 100;
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+        }
+
+        // --- KHỞI TẠO ---
+        // Không gọi init gì phức tạp, chỉ hiển thị màn hình Home khi trang load xong
+        window.onload = function() {
+            // Màn hình home đã có class 'active' từ đầu
+        };
+    </script>
+</body>
+</html>
